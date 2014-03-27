@@ -1,0 +1,121 @@
+Sub CreateDataDic()
+
+'
+' CreateDataDic Macro in Word
+' arsene@readycom.com.tw
+'
+'
+    Dim curTable As Table
+    Dim r As Integer
+    Dim i As Integer
+    Dim j As Integer
+    Dim p As Integer
+    Dim x As Integer
+    Dim sqlScript As String
+    Dim readLine() As String
+    Dim dicDetail() As String
+    Dim tableName As String
+    Dim columnName As String
+    Dim colType As String
+    Dim colTypeLen As String
+    Dim colCount As Integer
+    Dim commentStr As String
+   
+    If Selection.Information(wdWithInTable) = True Then
+        With Selection
+        Set curTable = .Tables(1)
+            curTable.Cell(1, 1).Range.Select
+            Selection.MoveLeft Unit:=wdCharacter, Count:=1, Extend:=wdExtend
+            sqlScript = Selection.Text
+            readLine = Split(sqlScript, Chr(13))
+            
+            i = 0
+            Do While i <= UBound(readLine)
+                readLine(i) = Trim(readLine(i))
+                i = i + 1
+            Loop
+            
+            tableName = Trim(Replace(UCase(readLine(0)), "CREATE TABLE", ""))
+            curTable.Cell(2, 1).Range.Select
+            Selection.TypeText Text:="Table Name: " + tableName
+            i = 0
+            colCount = 0
+            ReDim dicDetail(1 To UBound(readLine) - 3, 1 To 4)
+            ' Hanle main script
+            Do While i <= UBound(readLine)
+                If Left(readLine(i), 1) = "(" Then
+                    colCount = i
+                    r = 0
+                ElseIf Left(readLine(i), 1) = ")" Then
+                    colCount = i - colCount - 1
+                    'MsgBox colCount
+                    i = UBound(readLine)
+                ElseIf colCount > 0 Then
+                    r = r + 1
+                    p = InStr(1, readLine(i), Chr(32), 1)
+                    
+                    columnName = UCase(Left(readLine(i), p - 1))
+                    colType = UCase(Replace(Right(readLine(i), Len(readLine(i)) - p), ",", ""))
+                    
+                    x = InStr(1, colType, "(", 1)
+                    If x > 0 Then
+                        colTypeLen = Replace(Right(colType, Len(colType) - x), ")", "")
+                        colType = Left(colType, x - 1)
+                    Else
+                        colTypeLen = ""
+                    End If
+                    dicDetail(r, 1) = columnName
+                    dicDetail(r, 2) = colType
+                    dicDetail(r, 3) = colTypeLen
+                End If
+                i = i + 1
+            Loop
+            
+        
+            'Handle comment script
+            i = colCount + 3
+            
+            Do While i <= UBound(readLine)
+                If InStr(1, readLine(i), "comment on column", 1) > 0 Then
+                    x = InStr(1, readLine(i), tableName + ".", 1)
+                    columnName = UCase(Right(readLine(i), Len(readLine(i)) - x - Len(tableName)))
+                    'MsgBox columnName
+                    For j = 1 To colCount
+                        If dicDetail(j, 1) = columnName Then
+                               p = j
+                               Exit For
+                        End If
+                    Next
+                ElseIf InStr(1, UCase(readLine(i)), "IS", 1) > 0 Then
+                    x = InStr(1, readLine(i), "'", 1)
+                    commentStr = Right(readLine(i), Len(readLine(i)) - x)
+                    commentStr = Left(commentStr, Len(commentStr) - 2)
+                    'MsgBox commentStr
+                    dicDetail(j, 4) = commentStr
+                End If
+                i = i + 1
+            Loop
+            
+            'Write out
+            r = 1
+            Do While r <= colCount
+                x = r + 3
+                curTable.Cell(x, 2).Range.Select
+                Selection.TypeText Text:=dicDetail(r, 1)
+                curTable.Cell(x, 3).Range.Select
+                Selection.TypeText Text:=dicDetail(r, 2)
+                curTable.Cell(x, 4).Range.Select
+                Selection.TypeText Text:=dicDetail(r, 3)
+                curTable.Cell(x, 5).Range.Select
+                Selection.TypeText Text:=dicDetail(r, 4)
+                If r < colCount Then
+                    curTable.Cell(x, 5).Range.Select
+                    Selection.MoveRight Unit:=wdCell
+                End If
+                r = r + 1
+            Loop
+            
+            
+        End With
+    End If
+End Sub

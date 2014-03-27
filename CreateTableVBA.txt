@@ -1,0 +1,66 @@
+Sub CreateTable()
+'
+' CreateTable Macro in Word
+' arsene@readycom.com.tw
+'
+'
+    Dim curTable As Table
+    Dim r As Integer
+    Dim x As Integer
+    Dim tableScript As String
+    Dim commentScript As String
+    Dim tableName As String
+    Dim columnName As String
+    Dim colType As String
+    Dim commentStr As String
+    Dim iChar As Integer
+    tableScript = "CREATE TABLE "
+    If Selection.Information(wdWithInTable) = True Then
+        With Selection
+        Set curTable = .Tables(1)
+            curTable.Cell(1, 1).Range.Select
+            Selection.MoveLeft Unit:=wdCharacter, Count:=1, Extend:=wdExtend
+            tableName = Trim(Replace(Replace(Replace(Selection.Text, "Table Name", ""), ":", ""), "¡G", ""))
+            tableScript = tableScript + tableName + Chr(10) + "(" + Chr(10)
+            r = 3
+            Do While r <= curTable.Rows.Count
+                curTable.Cell(r, 2).Range.Select
+                Selection.MoveLeft Unit:=wdCharacter, Count:=1, Extend:=wdExtend
+                columnName = Selection.Text
+                tableScript = tableScript + columnName + " "
+                curTable.Cell(r, 3).Range.Select
+                Selection.MoveLeft Unit:=wdCharacter, Count:=1, Extend:=wdExtend
+                colType = Selection.Text
+                If UCase(colType) = "VARCHAR2" Then
+                    curTable.Cell(r, 4).Range.Select
+                    Selection.MoveLeft Unit:=wdCharacter, Count:=1, Extend:=wdExtend
+                    iChar = Asc(Selection.Text)
+                    If iChar = 13 Then
+                        colType = colType + "(ERROR)"
+                    Else
+                        colType = colType + "(" + Selection.Text + ")"
+                    End If
+                End If
+                If r < curTable.Rows.Count Then
+                    tableScript = tableScript + colType + "," + Chr(10)
+                Else
+                    tableScript = tableScript + colType + Chr(10) + ");"
+                End If
+                ' handle commentScript
+                curTable.Cell(r, 5).Range.Select
+                Selection.MoveLeft Unit:=wdCharacter, Count:=1, Extend:=wdExtend
+                commentStr = Selection.Text
+                x = InStr(Selection.Text, Chr(13))
+                If x > 0 Then
+                    commentStr = Left(commentStr, x - 1)
+                End If
+                commentScript = commentScript + Chr(10) + "comment on column " + tableName + "." + columnName + Chr(10) + "  IS '" + commentStr + "';"
+                r = r + 1
+            Loop
+            curTable.Cell(curTable.Rows.Count, curTable.Columns.Count).Range.Select
+            Selection.MoveDown Unit:=wdLine, Count:=2
+            Selection.TypeText Text:=tableScript + commentScript
+
+        End With
+    End If
+End Sub
