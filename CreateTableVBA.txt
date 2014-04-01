@@ -1,7 +1,8 @@
 Sub CreateTable()
 '
 ' CreateTable Macro in Word
-' arsene@readycom.com.tw
+' @authur arsene@readycom.com.tw
+' @version 1.3 using clipboard
 '
 '
     Dim curTable As Table
@@ -14,6 +15,8 @@ Sub CreateTable()
     Dim colType As String
     Dim commentStr As String
     Dim iChar As Integer
+    Dim rstStr As String
+    Dim myData As DataObject
     tableScript = "CREATE TABLE "
     If Selection.Information(wdWithInTable) = True Then
         With Selection
@@ -57,9 +60,14 @@ Sub CreateTable()
                 commentScript = commentScript + Chr(10) + "comment on column " + tableName + "." + columnName + Chr(10) + "  IS '" + commentStr + "';"
                 r = r + 1
             Loop
-            curTable.Cell(curTable.Rows.Count, curTable.Columns.Count).Range.Select
-            Selection.MoveDown Unit:=wdLine, Count:=2
-            Selection.TypeText Text:=tableScript + commentScript
+            
+            rstStr = tableScript + commentScript
+            
+            Set myData = New DataObject
+            myData.SetText rstStr
+            myData.PutInClipboard
+
+            MsgBox "Already generate the script in the clipboard"
 
         End With
     End If
